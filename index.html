@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ω OMEGA — LUCIFER DOMINION</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff007f;
+            --dark-bg: #030303;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            background-image: radial-gradient(circle at 50% 50%, #110005 0%, #030303 100%);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* เคียวไขว้พื้นหลังฉบับ HD */
+        .scythe-bg {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            background: url('https://i.imgur.com/eXf2K2k.png') no-repeat center; /* มึงหาภาพเคียวโปร่งใสมาแปะตรงนี้ */
+            background-size: contain;
+            opacity: 0.03;
+            z-index: -1;
+            filter: drop-shadow(0 0 20px var(--neon-pink));
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 1.8rem;
+            letter-spacing: 10px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px var(--neon-cyan);
+            margin: 0;
+        }
+
+        .satanic-cross {
+            color: #ff0000;
+            font-size: 2.5rem;
+            margin: 15px 0;
+            filter: drop-shadow(0 0 10px #ff0000);
+            animation: glow 3s infinite alternate;
+        }
+
+        @keyframes glow {
+            from { opacity: 0.4; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1.1); }
+        }
+
+        .main-board {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 0, 127, 0.2);
+            border-radius: 5px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            color: var(--neon-cyan);
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #333;
+            border-left: 4px solid var(--neon-pink);
+            padding: 15px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            border-radius: 4px;
+            outline: none;
+            transition: 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        .execute-btn {
+            width: 100%;
+            padding: 18px;
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            font-family: 'Syncopate', sans-serif;
+            font-weight: 700;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all 0.4s;
+            margin-bottom: 20px;
+        }
+
+        .execute-btn:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 30px var(--neon-cyan);
+        }
+
+        .output-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #222;
+            padding: 25px;
+            min-height: 150px;
+            line-height: 1.8;
+            font-size: 1.05rem;
+            color: #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .status-text {
+            font-size: 0.65rem;
+            color: #444;
+            text-align: center;
+            margin-top: 20px;
+            letter-spacing: 2px;
+        }
+
+        /* LaTeX Container Style */
+        .mjx-chtml {
+            color: var(--neon-cyan) !important;
+            font-size: 1.2rem !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="scythe-bg"></div>
+
+<div class="container">
+    <header>
+        <div class="satanic-cross">†</div>
+        <h1 class="title">Ω OMEGA — NEXUS</h1>
+    </header>
+
+    <div class="main-board">
+        <div class="input-group">
+            <label>Master Input Command</label>
+            <textarea id="promptInput" placeholder="Enter your command for OMEGA... (e.g., Calculate Schrödinger equation in LaTeX)"></textarea>
+        </div>
+
+        <button class="execute-btn" onclick="executeOmega()">Execute Omega</button>
+
+        <label>Output Nexus Results</label>
+        <div class="output-panel" id="outputPanel">
+            Waiting for OMEGA results...
+        </div>
+
+        <div class="status-text">SYSTEM STATUS: OPTIMIZED | OWNER: LUCIFER</div>
+    </div>
+</div>
+
+<script>
+    async function executeOmega() {
+        const prompt = document.getElementById('promptInput').value;
+        const output = document.getElementById('outputPanel');
+        
+        if (!prompt) return;
+
+        output.innerHTML = "Processing soul data...";
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt })
+            });
+            const data = await response.json();
+            
+            // ใส่คำตอบลงใน Panel
+            output.innerHTML = data.result;
+
+            // สั่งให้ MathJax ประมวลผล LaTeX ที่ออกมาใหม่
+            MathJax.typesetPromise();
+            
+        } catch (err) {
+            output.innerHTML = "❌ Error: Connection to Hell failed.";
+        }
+    }
+</script>
+
+</body>
+</html>
