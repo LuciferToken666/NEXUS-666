@@ -1,28 +1,26 @@
-import os, time, json, hmac, hashlib
+import os, time, hmac, hashlib
 from typing import Dict
 from fastapi import FastAPI, Request, HTTPException, Header
-from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import google.generativeai as genai
+from collections import defaultdict, deque
 
-# ================= BASIC CONFIG =================
-APP_NAME = "OMEGA-NEXUS-GEMINI"
+# ================= CONFIG =================
+APP_NAME = "Ω-NEXUS"
 PORT = int(os.getenv("PORT", "10000"))
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+OWNER_TOKEN = os.getenv("LUCIFER", "LUCIFER_666")
 
-GEMINI_API_KEY = os.getenv("GEMINI")
-OWNER_TOKEN = os.getenv("LUCIFER")
-GUMROAD_SECRET = os.getenv("GUMROAD_SECRET", "")
+if not GEMINI_KEY:
+    print("⚠️ GEMINI_API_KEY NOT SET")
 
-if not GEMINI_API_KEY:
-    print("❌ GEMINI API KEY NOT SET")
-
-genai.configure(api_key=GEMINI_API_KEY)
+genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-# ================= FASTAPI ======================
+# ================= FASTAPI =================
 app = FastAPI(title=APP_NAME)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,133 +28,78 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ================= STORAGE ======================
+# ================= RATE LIMIT (FREE SAFE) =========
+RATE_LIMIT = 10          # 10 req
+WINDOW = 60              # ต่อ 60 วิ
+rate_map = defaultdict(deque)
+
+def rate_guard(ip: str):
+    now = time.time()
+    q = rate_map[ip]
+    while q and now - q[0] > WINDOW:
+        q.popleft()
+    if len(q) >= RATE_LIMIT:
+        raise HTTPException(429, "RATE LIMITED")
+    q.append(now)
+
+# ================= MEMORY =================
 persona_memory: Dict[str, dict] = {}
-user_plans: Dict[str, dict] = {}
-audit_log = []
+MEM_LIMIT = 10
 
-MEMORY_DECAY = 60 * 60 * 24  # 24 ชม.
-
-# ================= UTILS ========================
-def now():
-    return int(time.time())
-
-def log(event: str, detail: dict):
-    audit_log.append({"t": now(), "event": event, "detail": detail})
-    if len(audit_log) > 1000:
-        audit_log.pop(0)
-
-def decay_memory():
-    dead = [
-        u for u, d in persona_memory.items()
-        if now() - d["last"] > MEMORY_DECAY
-    ]
-    for u in dead:
-        persona_memory.pop(u, None)
-
-def owner_guard(token: str):
-    if token != OWNER_TOKEN:
-        raise HTTPException(status_code=403, detail="OWNER ONLY")
-
-# ================= MODELS =======================
+# ================= MODELS =================
 class ChatRequest(BaseModel):
     prompt: str
     user_id: str = "guest"
 
-# ================= ROUTES =======================
+# ================= ROUTES =================
 @app.get("/", response_class=HTMLResponse)
 def root():
-    return "<h1>Ω OMEGA‑NEXUS (Gemini) ONLINE</h1>"
+    return "<h1>Ω‑NEXUS ONLINE</h1>"
 
 @app.get("/health")
 def health():
     return {
         "status": "ONLINE",
-        "users": len(persona_memory),
-        "plans": len(user_plans),
+        "users": len(persona_memory)
     }
 
-# ================= CHAT =========================
 @app.post("/chat")
-def chat(data: ChatRequest):
-    if not GEMINI_API_KEY:
-        return {"result": "❌ GEMINI API KEY NOT FOUND"}
-
-    decay_memory()
+def chat(data: ChatRequest, request: Request):
+    rate_guard(request.client.host)
 
     uid = data.user_id.strip() or "guest"
+    mem = persona_memory.setdefault(uid, [])
+    mem.append(data.prompt)
+    if len(mem) > MEM_LIMIT:
+        mem[:] = mem[-MEM_LIMIT:]
 
-    # ---- PLAN CHECK ----
-    plan = user_plans.get(uid)
-    if plan:
-        if now() > plan["expires"]:
-            return {"result": "แพ็กเกจหมดอายุ"}
-        if plan["quota"] <= 0:
-            return {"result": "โควต้าหมด"}
-        plan["quota"] -= 1
+    prompt = f"""
+คุณคือ Ω‑NEXUS AI
+ตอบสั้น ชัด ใช้งานได้จริง
 
-    # ---- MEMORY ----
-    mem = persona_memory.setdefault(uid, {"msgs": [], "last": now()})
-    mem["last"] = now()
-    mem["msgs"].append(data.prompt)
-    mem["msgs"] = mem["msgs"][-20:]
+Context:
+{mem}
 
-    instruction = "คุณคือ OMEGA AI ตอบชัด กระชับ สุภาพ ไม่เพ้อ"
-    prompt = f"{instruction}\nคำสั่ง: {data.prompt}"
+User:
+{data.prompt}
+"""
 
     try:
         resp = model.generate_content(prompt)
-        result = resp.text if resp.text else "⚠️ ไม่สามารถตอบได้"
+        text = resp.text if resp and resp.text else "⚠️ AI ไม่ตอบ"
     except Exception as e:
-        result = f"⚠️ GEMINI ERROR: {str(e)}"
+        text = f"⚠️ GEMINI ERROR: {str(e)}"
 
-    log("CHAT", {"user": uid})
-    return {"result": result}
+    return {"result": text}
 
-# ================= GUMROAD ======================
-def verify_gumroad(payload: bytes, signature: str) -> bool:
-    if not GUMROAD_SECRET or not signature:
-        return False
-    expected = hmac.new(
-        GUMROAD_SECRET.encode(),
-        payload,
-        hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(expected, signature)
+# ================= ADMIN =================
+@app.get("/admin/memory")
+def admin_mem(authorization: str = Header(None)):
+    if authorization != OWNER_TOKEN:
+        raise HTTPException(403, "FORBIDDEN")
+    return persona_memory
 
-@app.post("/webhook/gumroad")
-async def gumroad(request: Request):
-    raw = await request.body()
-    sig = request.headers.get("X-Gumroad-Signature")
-
-    if not verify_gumroad(raw, sig):
-        raise HTTPException(status_code=403, detail="INVALID SIGNATURE")
-
-    form = dict(await request.form())
-    email = form.get("email")
-    product = form.get("product_name", "").upper()
-
-    if not email:
-        return {"status": "IGNORED"}
-
-    if "VIP" in product:
-        quota, days = 999999, 30
-    elif "PRO" in product:
-        quota, days = 300, 30
-    else:
-        quota, days = 50, 7
-
-    user_plans[email] = {
-        "plan": product,
-        "quota": quota,
-        "expires": now() + days * 86400
-    }
-
-    log("SALE", {"email": email, "product": product})
-    return {"status": "OK"}
-
-# ================= ADMIN ========================
-@app.get("/admin/audit")
-def admin_audit(authorization: str = Header(None)):
-    owner_guard(authorization)
-    return audit_log[-200:]
+# ================= START =================
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT)
