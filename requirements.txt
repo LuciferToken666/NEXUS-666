@@ -1,4 +1,7 @@
-google-genai
-fastapi
-uvicorn
+pip 
+install 
+fastapi 
+uvicorn 
+google-genai 
+python-multipart
 
